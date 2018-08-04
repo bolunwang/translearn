@@ -8,6 +8,7 @@ import tensorflow as tf
 
 
 def _FSpecialGauss(size, sigma):
+
     """Function to mimic the 'fspecial' gaussian MATLAB function."""
     radius = size // 2
     offset = 0.0
@@ -17,14 +18,16 @@ def _FSpecialGauss(size, sigma):
         stop -= 1
     x, y = np.mgrid[offset + start:stop, offset + start:stop]
     assert len(x) == size
-    g = np.exp(-((x**2 + y**2)/(2.0 * sigma**2)))
+    g = np.exp(-((x**2 + y**2) / (2.0 * sigma**2)))
     window = g / g.sum()
     window = np.reshape(window, (size, size, 1, 1))
     window = tf.constant(window, dtype=tf.float32)
+
     return window
 
 
 def _Conv2dIndividual(input_tensor, filter_tensor, strides, padding):
+
     if input_tensor.get_shape().as_list()[3] == 3:
         input_split = tf.unstack(input_tensor, 3, axis=3)
         result_split = [tf.nn.conv2d(tf.expand_dims(in_t, -1),
@@ -42,11 +45,13 @@ def _Conv2dIndividual(input_tensor, filter_tensor, strides, padding):
     else:
         raise Exception('nb_channels must be 1 or 3, got %s instead'
                         % str(input_tensor.get_shape().as_list()))
+
     return result
 
 
 def _SSIMForMultiScale(img1, img2, max_val=255, filter_size=11,
                        filter_sigma=1.5, k1=0.01, k2=0.03):
+
     """Return the Structural Similarity Map between `img1` and `img2`.
     This function attempts to match the functionality of ssim_index_new.m by
     Zhou Wang: http://www.cns.nyu.edu/~lcv/ssim/msssim.zip
@@ -70,6 +75,7 @@ def _SSIMForMultiScale(img1, img2, max_val=255, filter_size=11,
         RuntimeError: If input images don't have the same shape or don't
         have four dimensions: [batch_size, height, width, depth].
     """
+
     if img1.get_shape().as_list() != img2.get_shape().as_list():
         raise RuntimeError(
             'Input images must have the same shape (%s vs. %s).',
@@ -129,14 +135,15 @@ def _SSIMForMultiScale(img1, img2, max_val=255, filter_size=11,
     c2 = (k2 * max_val) ** 2
     v1 = 2.0 * sigma12 + c2
     v2 = sigma11 + sigma22 + c2
-    ssim = tf.reduce_mean(((2.0 * mu12 + c1) * v1)
-                          / ((mu11 + mu22 + c1) * v2))
+    ssim = tf.reduce_mean(((2.0 * mu12 + c1) * v1) / ((mu11 + mu22 + c1) * v2))
     cs = tf.reduce_mean(v1 / v2)
+
     return ssim, cs
 
 
 def MultiScaleSSIM(img1, img2, max_val=255, filter_size=11, filter_sigma=1.5,
                    k1=0.01, k2=0.03, weights=None):
+
     """Return the MS-SSIM score between `img1` and `img2`.
     This function implements Multi-Scale Structural Similarity (MS-SSIM) Image
     Quality Assessment according to Zhou Wang's paper, "Multi-scale structural
@@ -165,6 +172,7 @@ def MultiScaleSSIM(img1, img2, max_val=255, filter_size=11, filter_sigma=1.5,
         RuntimeError: If input images don't have the same shape or
             don't have four dimensions: [batch_size, height, width, depth].
     """
+
     if img1.get_shape().as_list() != img2.get_shape().as_list():
         raise RuntimeError(
             'Input images must have the same shape (%s vs. %s).',
@@ -195,5 +203,5 @@ def MultiScaleSSIM(img1, img2, max_val=255, filter_size=11, filter_sigma=1.5,
                     for im in [img1, img2]]
         img1, img2 = filtered
 
-    return (tf.reduce_prod(tf.pow(mcs[0:levels-1], weights[0:levels-1]))
-            * (mssim[levels-1]**weights[levels-1]))
+    return (tf.reduce_prod(tf.pow(mcs[0:levels - 1], weights[0:levels - 1])) *
+            (mssim[levels - 1]**weights[levels - 1]))
