@@ -12,7 +12,7 @@ from attacks_penalty_dssim import MimicPenaltyDSSIM
 
 # for reproducing results
 import random
-random.seed(1234)
+random.seed(12345)
 import itertools
 
 
@@ -31,8 +31,8 @@ INTENSITY_RANGE = 'imagenet'
 # parameters about dataset/model/result path
 
 TEACHER_MODEL_FILE = 'vggface.h5'
-STUDENT_MODEL_FILE = 'vggface-trans-nb-train-90.h5'
-DATA_FILE = 'np-data-filter-imagenet-90.h5'
+STUDENT_MODEL_FILE = 'pubfig65-vggface-trans-nb-train-90.h5'
+DATA_FILE = 'pubfig65-imagenet-test.h5'
 RESULT_DIR = './pubfig65'
 
 # parameters used for attack
@@ -62,6 +62,11 @@ def load_dataset(data_file=DATA_FILE):
 
     X = dataset['X_test']
     Y = dataset['Y_test']
+
+    X = X.astype(np.float32)
+    Y = Y.astype(np.float32)
+
+    X = utils_translearn.preprocess(X, INTENSITY_RANGE)
     Y = np.argmax(Y, axis=1)
 
     return X, Y
@@ -173,7 +178,8 @@ def pubfig65_mimic_penalty_dssim():
     if not os.path.exists(RESULT_DIR):
         os.makedirs(RESULT_DIR)
 
-    all_pair_list = list(itertools.permutations(range(NB_CLASSES), 2))
+    Y_label = list(np.unique(Y))
+    all_pair_list = list(itertools.permutations(Y_label, 2))
     pair_list = random.sample(
         all_pair_list,
         min(NB_PAIR, len(all_pair_list)))
