@@ -25,7 +25,7 @@ The code is tested using Python 2.7.
 
 #### Attack
 
-We include a sample [script](https://github.com/bolunwang/translearn/blob/master/pubfig65_vggface_mimic_penalty_dssim.py)
+We include a sample [script](pubfig65_vggface_mimic_penalty_dssim.py)
 that demonstrate how to perform the attack on the Face Recognition example
 and evaluate the attack performance.
 
