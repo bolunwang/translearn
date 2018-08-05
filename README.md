@@ -23,16 +23,18 @@ The code is tested using Python 2.7.
 
 ### HOWTO
 
-We include a sample [script](https://github.com/bolunwang/translearn/blob/master/pubfig65-vggface-trans-mimic-target-penalty-dssim.py)
+#### Attack
+
+We include a sample [script](https://github.com/bolunwang/translearn/blob/master/pubfig65_vggface_mimic_penalty_dssim.py)
 that demonstrate how to perform the attack on the Face Recognition example
 and evaluate the attack performance.
 
 ```
-python pubfig65-vggface-trans-mimic-target-penalty-dssim.py
+python pubfig65_vggface_mimic_penalty_dssim.py
 ```
 
 There are several parameters that need to be modified before running the code,
-which is included in the "[PARAMETER](https://github.com/bolunwang/translearn/blob/master/pubfig65-vggface-trans-mimic-target-penalty-dssim.py#L19-L54)"
+which is included in the "[PARAMETER](https://github.com/bolunwang/translearn/blob/master/pubfig65_vggface_mimic_penalty_dssim.py#L25-L60)"
 section of the script.
 
 1. Model files of the Teacher and Student need to be downloaded using the
@@ -43,6 +45,22 @@ the Student model. Download the data file using the following [link](),
 and place it under the same folder.
 3. If you are using GPU, you need to specify which GPU you want to use for
 the attack. This this specified by the `DEVICE` variable.
+
+
+#### Patch
+
+This [script](https://github.com/bolunwang/translearn/blob/master/pubfig65_patch_neuron_distance.py) contains an example of how to patch DNN using the updated loss function. To run this script, simply run 
+
+```
+python pubfig65_patch_neuron_distance.py
+```
+
+Similar as the previous example, there is some setup before running this example, as described below.
+
+1. Paths to model files are specified by `TEACHER_MODEL_FILE` and `STUDENT_MODEL_FILE`. 
+2. `DATA_FILE` specifies the patch to the training/testing dataset. We use the `h5` format to store the dataset, but you can change it to any format you prefer. Dataset is loaded by the [`load_dataset()`](https://github.com/bolunwang/translearn/blob/master/pubfig65_patch_neuron_distance.py#L186-L210) function. Be sure to modify the function if you change the dataset format.
+3. Similar as before, you need to specify the GPU used for training. This is specified by `DEVICE`.
+4. Parameters used by the patching is specified [here](https://github.com/bolunwang/translearn/blob/master/pubfig65_patch_neuron_distance.py#L49-L55). We incrementally increase the neuron distance threshold to stablize the training process. More details are included in the documentation of the script.
 
 
 ### DATASETS

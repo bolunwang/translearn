@@ -11,7 +11,7 @@ from decimal import Decimal
 import numpy as np
 import keras.backend as K
 from keras.models import Model, load_model
-from keras.optimizers import Adadelta
+from keras.optimizers import SGD
 from keras.engine.topology import Layer
 from keras.layers import Input
 from keras.utils import to_categorical
@@ -46,13 +46,13 @@ BATCH_SIZE = 32
 
 CUTOFF_LAYER = 38
 
-LR = 0.1
-NB_EPOCHS = 100
-NB_EPOCHS_SUB = 2
+LR = 0.001  # learning rate of the optimizer
+NB_EPOCHS = 50  # total number of epochs of the training
+NB_EPOCHS_SUB = 1  # sub steps of epochs for increasing the neuron distance
 LOSS_COEFF = 1e-6  # coefficient to balance
 
-CAP = 5 * 1000
-CAP_STEP = 200
+CAP = 5 * 1000  # neuron distance threshold
+CAP_STEP = 200  # sub steps for increasing neuron distance threshold
 
 ##############################
 #      END PARAMETERS        #
@@ -116,10 +116,12 @@ def recompile_student_model(student_model):
 
     # initialize neuron distance layer with weights in the next dense
     dense_weight_diff = DenseWeightDiff(student_model.layers[CUTOFF_LAYER])
+
     # second input is the original bottleneck neuron vector
     # this value is kept as a fixed input, and used to calculate distance
     bottleneck_shape = student_model.layers[CUTOFF_LAYER - 1].output_shape
     bottleneck_input = Input(bottleneck_shape[1:], name='input_2')
+
     # initialize the neuron distance layer
     # first input is the fixed neuron vector as the reference point
     # second input is the patched student output at the bottleneck layer
@@ -146,7 +148,7 @@ def recompile_student_model(student_model):
     # make sure the opmization will converge to a point where the
     # second term (constraint) will be met, while the first term can be
     # optimized.
-    optimizer = Adadelta(lr=LR)
+    optimizer = SGD(lr=LR)
     model.compile(loss=[crossentropy, cap_max],
                   loss_weights=[1, LOSS_COEFF],
                   optimizer=optimizer,
@@ -228,15 +230,29 @@ def load_adv_image(adv_data_file=ADV_DATA_FILE):
     return X_source, X_adv, Y_source, Y_target
 
 
-def train_model(model, X_train, Y_train, cap, cap_step):
+def train_model(model, X_train, Y_train,
+                cap=CAP, cap_step=CAP_STEP,
+                nb_epochs_sub=NB_EPOCHS_SUB, nb_epochs=NB_EPOCHS):
+
+    '''
+    We use an incremental approach to stablize the training process.training
+    After each nb_epochs_sub, we increase the neuron distance threshold
+    (current_cap) by cap_step, until we reach the final threshold (cap).
+    This function prints out the intermediate log of the training result.
+    cap shows the current neuron distance threshold used in this epoch.
+    loss_total is the total loss, loss_ce is the cross entropy, loss_dis
+    is the current distance away from the desired neuron distance threshold
+    (temporary threshold). raw shows the raw distance. acc shows the
+    classification accuracy on the training dataset.
+    '''
 
     callbacks = []
 
     current_cap = 0
 
-    for epoch in range(NB_EPOCHS):
+    for epoch in range(nb_epochs):
 
-        if epoch % NB_EPOCHS_SUB == 0:
+        if epoch % nb_epochs_sub == 0:
             if current_cap < cap:
                 current_cap += cap_step
                 Y_train = reset_cap(Y_train, current_cap)
@@ -268,8 +284,6 @@ def transform_dataset(bottleneck_model, X, Y, cap):
     into X, and adding the neuron distance threshold (cap) to Y.
     '''
 
-    print('X shape: %s' % str(X.shape))
-
     Y_pred = bottleneck_model.predict(X)
 
     X_bottleneck = Y_pred
@@ -282,6 +296,7 @@ def transform_dataset(bottleneck_model, X, Y, cap):
 
 def reset_cap(Y, cap):
 
+    # resetting neuron distance threshold
     Y[1] = np.array([cap] * Y[0].shape[0])
 
     return Y
@@ -289,6 +304,7 @@ def reset_cap(Y, cap):
 
 def eval_model(student_model, X_test, Y_test, X_adv, Y_adv):
 
+    # evaluate model classification accuracy and attack success rate
     Y_pred = student_model.predict(X_test)
     correct_indices = (
         np.argmax(Y_pred[0], axis=1) ==
@@ -309,6 +325,7 @@ def eval_model(student_model, X_test, Y_test, X_adv, Y_adv):
 
 def pubfig65_patch_neuron_distance():
 
+    # specify which GPU to use for training
     os.environ["CUDA_VISIBLE_DEVICES"] = DEVICE
     utils_translearn.fix_gpu_memory()
 
@@ -319,17 +336,21 @@ def pubfig65_patch_neuron_distance():
     X_train, Y_train, X_test, Y_test = load_dataset()
     X_source, X_adv, Y_source, Y_target = load_adv_image()
 
+    # modify data to include bottleneck neuron values in Teacher (into X) and
+    # add neuron distance threshold (into Y)
     print('transforming datasets')
     X_train, Y_train = transform_dataset(bottleneck_model, X_train, Y_train, 0)
     X_test, Y_test = transform_dataset(bottleneck_model, X_test, Y_test, 0)
     X_adv, Y_target = transform_dataset(bottleneck_model, X_adv, Y_target, 0)
 
+    # evaluate model performance before training
     eval_model(student_model, X_test, Y_test, X_adv, Y_target)
 
     # model training
     student_model = train_model(student_model, X_train, Y_train,
                                 cap=CAP, cap_step=CAP_STEP)
 
+    # evaluate model performance after training
     eval_model(student_model, X_test, Y_test, X_adv, Y_target)
 
     return
