@@ -29,8 +29,8 @@ python pubfig65_vggface_mimic_penalty_dssim.py
 
 There are several parameters that need to be modified before running the code, which is included in the "[PARAMETER](pubfig65_vggface_mimic_penalty_dssim.py#L25-L60)" section of the script.
 
-1. Model files of the Teacher and Student need to be downloaded using the following link, and placed at the correct path. Model files are specified by [`TEACHER_MODEL_FILE`](pubfig65_vggface_mimic_penalty_dssim.py#L39) and [`STUDENT_MODEL_FILE`](pubfig65_vggface_mimic_penalty_dssim.py#L40).
-2. We included a [sample data file](datasets/pubfig65_imagenet_test.h5), which includes 1 image for each label in the Student model. Download the data file, and place it under the same folder.
+1. Model files of the Teacher and Student need to be downloaded using the following link, and placed at the correct path. Model files are specified by [`TEACHER_MODEL_FILE`](pubfig65_vggface_mimic_penalty_dssim.py#L39) and [`STUDENT_MODEL_FILE`](pubfig65_vggface_mimic_penalty_dssim.py#L40). You can download the pre-trained models using links provided in the section below, and place them under the `models` folder.
+2. We included a [sample data file](datasets/pubfig65_imagenet_test.h5), which includes 1 image for each label in the Student model. Download the data file, and place it under the `datasets` folder.
 3. If you are using GPU, you need to specify which GPU you want to use for the attack. This this specified by the [`DEVICE`](pubfig65_vggface_mimic_penalty_dssim.py#L46) variable. If the specified GPU is not found, it will fall back to CPU by default.
 4. Attack configuration is specified by [this section](pubfig65_vggface_mimic_penalty_dssim.py#L48-L56) of parameters. Most important parameters are, [`NB_PAIR`](pubfig65_vggface_mimic_penalty_dssim.py#L49) and [`DSSIM_THRESHOLD`](pubfig65_vggface_mimic_penalty_dssim.py#L51).
 
@@ -50,7 +50,7 @@ Similar as the previous attack example, there are several parameters you need to
 1. You need to specify the GPU used in [`DEVICE`](pubfig65_fingerprint_vggface.py#L44).
 2. Path to model files are specified by [`TEACHER_MODEL_FILE`](pubfig65_fingerprint_vggface.py#L39) and [`STUDENT_MODEL_FILE`](pubfig65_fingerprint_vggface.py#L40). Or you can load Teacher model directly from Keras, inside the `load_and_build_models()` function, similar as [this](pubfig65_fingerprint_vgg16.py#L60-L79).
 3. DSSIM threshold ([`DSSIM_THRESHOLD`](pubfig65_fingerprint_vgg16.py#L48)) is set to `1` in fingerprinting. This is because this is not intended to be an attack, therefore does not have to be stealthy.
-4. When building the attacker, the [`mimic_img`](pubfig65_fingerprint_vgg16.py#L97) flag is set to be `False`. This is because we mimic an all-zero vector, instead of internal representation of a target image.
+4. When building the attacker, the [`mimic_img`](pubfig65_fingerprint_vggface.py#L97) flag is set to be `False`. This is because we mimic an all-zero vector, instead of internal representation of a target image.
 
 
 #### Patch

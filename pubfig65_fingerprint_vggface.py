@@ -36,12 +36,12 @@ INTENSITY_RANGE = 'imagenet'
 
 # parameters about dataset/model/result path
 
-TEACHER_MODEL_FILE = 'vggface.h5'
-STUDENT_MODEL_FILE = 'pubfig65-vggface-trans-nb-train-90.h5'
+TEACHER_MODEL_FILE = 'models/vggface.h5'
+STUDENT_MODEL_FILE = 'models/pubfig65-vggface-trans-nb-train-90.h5'
 
 # parameters used for attack
 
-DEVICE = '1'  # which GPU to use
+DEVICE = '0'  # which GPU to use
 
 BATCH_SIZE = 1  # number of images being processed simultaneously, default is 1
 NB_IMGS = 1  # number of fingerprinting images generated
