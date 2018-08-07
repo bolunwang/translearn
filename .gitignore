@@ -104,3 +104,7 @@ venv.bak/
 .mypy_cache/
 
 sftp-config.json
+datasets/pubfig65_imagenet.h5
+datasets/pubfig65_mimic_samples_penalty_dssim_0.003.h5
+models/pubfig65_vggface_trans_nbtrain_90.h5
+models/vggface.h5
