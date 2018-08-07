@@ -12,6 +12,77 @@ from keras.preprocessing import image
 import h5py
 
 
+def vgg_face():
+
+    from keras.models import Model
+    from keras.layers import Dense, Dropout, Flatten, Input, Activation
+    from keras.layers import Conv2D, MaxPooling2D
+
+    input_shape = (224, 224, 3)
+
+    img_input = Input(shape=input_shape)
+
+    # Block 1
+    x = Conv2D(64, (3, 3), padding='same', name='conv1_1')(img_input)
+    x = Activation('relu')(x)
+    x = Conv2D(64, (3, 3), padding='same', name='conv1_2')(x)
+    x = Activation('relu')(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='pool1')(x)
+
+    # Block 2
+    x = Conv2D(128, (3, 3), padding='same', name='conv2_1')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(128, (3, 3), padding='same', name='conv2_2')(x)
+    x = Activation('relu')(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='pool2')(x)
+
+    # Block 3
+    x = Conv2D(256, (3, 3), padding='same', name='conv3_1')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(256, (3, 3), padding='same', name='conv3_2')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(256, (3, 3), padding='same', name='conv3_3')(x)
+    x = Activation('relu')(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='pool3')(x)
+
+    # Block 4
+    x = Conv2D(512, (3, 3), padding='same', name='conv4_1')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(512, (3, 3), padding='same', name='conv4_2')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(512, (3, 3), padding='same', name='conv4_3')(x)
+    x = Activation('relu')(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='pool4')(x)
+
+    # Block 5
+    x = Conv2D(512, (3, 3), padding='same', name='conv5_1')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(512, (3, 3), padding='same', name='conv5_2')(x)
+    x = Activation('relu')(x)
+    x = Conv2D(512, (3, 3), padding='same', name='conv5_3')(x)
+    x = Activation('relu')(x)
+    x = MaxPooling2D((2, 2), strides=(2, 2), name='pool5')(x)
+
+    # Classification block
+    x = Flatten(name='flatten')(x)
+    x = Dense(4096, name='fc6')(x)
+    x = Activation('relu')(x)
+    x = Dropout(0.5)(x)
+    x = Dense(4096, name='fc7')(x)
+    x = Activation('relu')(x)
+    x = Dropout(0.5)(x)
+    x = Dense(2622, name='fc8')(x)
+    x = Activation('softmax')(x)
+
+    # Ensure that the model takes into account
+    # any potential predecessors of `input_tensor`.
+    inputs = img_input
+    # Create model.
+    model = Model(inputs, x, name='vgg_face')
+
+    return model
+
+
 def gini(array):
     """Calculate the Gini coefficient of a numpy array."""
     # based on bottom eq: http://www.statsdirect.com/help/content/image/stat0206_wmf.gif

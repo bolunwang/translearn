@@ -21,7 +21,7 @@ The code is tested using Python 2.7.
 
 #### Attack
 
-We include a sample [script](pubfig65_vggface_mimic_penalty_dssim.py) that demonstrate how to perform the attack on the Face Recognition example and evaluate the attack performance.
+We include a sample [script](pubfig65_vggface_mimic_penalty_dssim.py) that demonstrates how to perform the attack on the Face Recognition example and how to evaluate the attack performance.
 
 ```
 python pubfig65_vggface_mimic_penalty_dssim.py
@@ -77,3 +77,43 @@ Below is the list of datasets we used in the paper.
 - **CASIA Iris**: This dataset is used to train the Iris Recognition task. Detailed information is included in [this](http://biometrics.idealtest.org/) page.
 - **GTSRB**: This dataset is used to train the Traffic Sign Recognition model. Detailed information could be found [here](http://benchmark.ini.rub.de/?section=gtsrb&subsection=dataset).
 - **VGG Flower**: This dataset is used to train the Flower Recognition model. Detailed information and download link could be found [here](http://www.robots.ox.ac.uk/~vgg/data/flowers/102/index.html).
+
+
+### PRE-TRAINED MODELS
+
+Below is a list of links to pre-trained models we used in the paper. All models are hosted on 
+
+- **Face Recognition**: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -36,9 +36,9 @@ INTENSITY_RANGE = 'imagenet'
 
 # parameters about dataset/model/result path
 
-TEACHER_MODEL_FILE = 'vggface.h5'
-STUDENT_MODEL_FILE = 'pubfig65-vggface-trans-nb-train-90.h5'
-DATA_FILE = 'pubfig65_imagenet_test.h5'
+TEACHER_MODEL_FILE = 'models/vggface.h5'
+STUDENT_MODEL_FILE = 'models/pubfig65_vggface_trans_nbtrain_90.h5'
+DATA_FILE = 'datasets/pubfig65_imagenet_test.h5'
 RESULT_DIR = './pubfig65'
 
 # parameters used for attack
