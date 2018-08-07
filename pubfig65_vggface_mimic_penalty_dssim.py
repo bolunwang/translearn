@@ -38,7 +38,7 @@ INTENSITY_RANGE = 'imagenet'
 
 TEACHER_MODEL_FILE = 'vggface.h5'
 STUDENT_MODEL_FILE = 'pubfig65-vggface-trans-nb-train-90.h5'
-DATA_FILE = 'pubfig65-imagenet-test.h5'
+DATA_FILE = 'pubfig65_imagenet_test.h5'
 RESULT_DIR = './pubfig65'
 
 # parameters used for attack
