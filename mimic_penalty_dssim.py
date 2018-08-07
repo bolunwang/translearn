@@ -18,12 +18,10 @@ from msssim_tf import MultiScaleSSIM
 
 class MimicPenaltyDSSIM:
 
+    # if the attack is trying to mimic a target image or a neuron vector
+    MIMIC_IMG = True
     # number of iterations to perform gradient descent
     MAX_ITERATIONS = 10000
-    # if we stop improving, abort gradient descent early
-    ABORT_EARLY = False
-    # loss threshold for early abort
-    ABORT_THRESHOLD = 0.9999
     # larger values converge faster to less accurate results
     LEARNING_RATE = 1e-2
     # the initial constant c to pick as a first guess
@@ -32,51 +30,45 @@ class MimicPenaltyDSSIM:
     INTENSITY_RANGE = 'imagenet'
     # threshold for distance
     L_THRESHOLD = 0.03
+    # whether keep the final result or the best result
+    KEEP_FINAL = False
     # max_val of image
     MAX_VAL = 255
+    # The following variables are used by DSSIM, should keep as default
     # filter size in SSIM
     FILTER_SIZE = 11
     # filter sigma in SSIM
     FILTER_SIGMA = 1.5
     # weights used in MS-SSIM
     WEIGHTS = None
-    # whether keep the final result or the best result
-    KEEP_FINAL = False
 
-    def __init__(self, sess, bottleneck_model, batch_size=1,
-                 learning_rate=LEARNING_RATE, max_iterations=MAX_ITERATIONS,
-                 abort_early=ABORT_EARLY, abort_threshold=ABORT_THRESHOLD,
-                 initial_const=INITIAL_CONST, intensity_range=INTENSITY_RANGE,
-                 l_threshold=L_THRESHOLD, max_val=MAX_VAL,
+    def __init__(self, sess, bottleneck_model, mimic_img=MIMIC_IMG,
+                 batch_size=1, learning_rate=LEARNING_RATE,
+                 max_iterations=MAX_ITERATIONS, initial_const=INITIAL_CONST,
+                 intensity_range=INTENSITY_RANGE, l_threshold=L_THRESHOLD,
+                 max_val=MAX_VAL, keep_final=KEEP_FINAL,
                  filter_size=FILTER_SIZE, filter_sigma=FILTER_SIGMA,
                  weights=WEIGHTS,
-                 keep_final=KEEP_FINAL, verbose=0):
+                 verbose=0):
         """
         The L_2 optimized attack.
-        This attack is the most efficient and should be used as the primary
-        attack to evaluate potential defenses.
-        Returns adversarial examples for the supplied model.
-        confidence: Confidence of adversarial examples: higher produces
-            examples that are farther away, but more strongly classified as
-            adversarial.
+        Returns adversarial examples for the supplied bottleneck model.
+        sess: a TensorFlow session
+        bottleneck_model: the teacher model cut off at the layer attacker
+            tries to launch the mimicry attack
         batch_size: Number of attacks to run simultaneously.
         learning_rate: The learning rate for the attack algorithm.
             Smaller values produce better results but are slower to converge.
-        binary_search_steps: The number of times we perform binary search to
-            find the optimal tradeoff-constant between distance and confidence.
         max_iterations: The maximum number of iterations.
             Larger values are more accurate; setting too small will require
             a large learning rate and will produce poor results.
-        abort_early: If true, allows early aborts if gradient descent gets
-            stuck.
         initial_const: The initial tradeoff-constant to use to tune the
             relative importance of distance and confidence.
-            If binary_search_steps is large, the initial constant is
-            not important.
-        intensity_range: The range of pixel intensity.
-            For imagenet images, it's 255, for Inception, it's 2,
-            and for other normalize images like MNIST, it's 1.
-            Default is set to 255.
+        intensity_range: The preprocessing method used by the model.
+            'raw': no preprocessing
+            'imagenet': default imagenet mean centering
+            'inception': inception preprocessing, scaling to [-1, 1]
+            'mnist': scaling to [0, 1]
         """
 
         assert intensity_range in {'raw', 'imagenet', 'inception', 'mnist'}
@@ -84,10 +76,9 @@ class MimicPenaltyDSSIM:
         # constant used for tanh transformation to avoid corner cases
         self.tanh_constant = 2 - 1e-6
         self.sess = sess
+        self.MIMIC_IMG = mimic_img
         self.LEARNING_RATE = learning_rate
         self.MAX_ITERATIONS = max_iterations
-        self.ABORT_EARLY = abort_early
-        self.abort_threshold = abort_threshold
         self.initial_const = initial_const
         self.batch_size = batch_size
         self.intensity_range = intensity_range
@@ -113,8 +104,12 @@ class MimicPenaltyDSSIM:
             np.zeros(self.input_shape, dtype=np.float32))
 
         # target image in tanh space
-        self.timg_tanh = tf.Variable(
-            np.zeros(self.input_shape), dtype=np.float32)
+        if self.MIMIC_IMG:
+            self.timg_tanh = tf.Variable(
+                np.zeros(self.input_shape), dtype=np.float32)
+        else:
+            self.bottleneck_t_raw = tf.Variable(
+                np.zeros(self.bottleneck_shape), dtype=np.float32)
         # source image in tanh space
         self.simg_tanh = tf.Variable(
             np.zeros(self.input_shape), dtype=np.float32)
@@ -125,7 +120,12 @@ class MimicPenaltyDSSIM:
 
         # and here's what we use to assign them
         self.assign_modifier = tf.placeholder(tf.float32, self.input_shape)
-        self.assign_timg_tanh = tf.placeholder(tf.float32, self.input_shape)
+        if self.MIMIC_IMG:
+            self.assign_timg_tanh = tf.placeholder(
+                tf.float32, self.input_shape)
+        else:
+            self.assign_bottleneck_t_raw = tf.placeholder(
+                tf.float32, self.bottleneck_shape)
         self.assign_simg_tanh = tf.placeholder(tf.float32, self.input_shape)
         self.assign_const = tf.placeholder(tf.float32, (batch_size))
         self.assign_mask = tf.placeholder(tf.bool, (batch_size))
@@ -144,10 +144,11 @@ class MimicPenaltyDSSIM:
         self.simg_raw = (tf.tanh(self.simg_tanh) /
                          self.tanh_constant +
                          0.5) * 255.0
-        # target image in raw space
-        self.timg_raw = (tf.tanh(self.timg_tanh) /
-                         self.tanh_constant +
-                         0.5) * 255.0
+        if self.MIMIC_IMG:
+            # target image in raw space
+            self.timg_raw = (tf.tanh(self.timg_tanh) /
+                             self.tanh_constant +
+                             0.5) * 255.0
 
         # convert source and adversarial image into input space
         if self.intensity_range == 'imagenet':
@@ -158,17 +159,20 @@ class MimicPenaltyDSSIM:
                                name='img_mean')
             self.aimg_input = (self.aimg_raw[..., ::-1] - mean)
             self.simg_input = (self.simg_raw[..., ::-1] - mean)
-            self.timg_input = (self.timg_raw[..., ::-1] - mean)
+            if self.MIMIC_IMG:
+                self.timg_input = (self.timg_raw[..., ::-1] - mean)
 
         elif self.intensity_range == 'inception':
             self.aimg_input = (self.aimg_raw / 255.0 - 0.5) * 2.0
             self.simg_input = (self.simg_raw / 255.0 - 0.5) * 2.0
-            self.timg_input = (self.timg_raw / 255.0 - 0.5) * 2.0
+            if self.MIMIC_IMG:
+                self.timg_input = (self.timg_raw / 255.0 - 0.5) * 2.0
 
         elif self.intensity_range == 'mnist':
             self.aimg_input = self.aimg_raw / 255.0
             self.simg_input = self.simg_raw / 255.0
-            self.timg_input = self.timg_raw / 255.0
+            if self.MIMIC_IMG:
+                self.timg_input = self.timg_raw / 255.0
 
         '''
         CONSTRAINTS: perturbation
@@ -213,8 +217,11 @@ class MimicPenaltyDSSIM:
 
         self.bottleneck_a = bottleneck_model(self.aimg_input)
         self.bottleneck_a *= self.weights
-        self.bottleneck_t = bottleneck_model(self.timg_input)
-        self.bottleneck_t *= self.weights
+        if self.MIMIC_IMG:
+            self.bottleneck_t = bottleneck_model(self.timg_input)
+            self.bottleneck_t *= self.weights
+        else:
+            self.bottleneck_t = self.weights * self.bottleneck_t_raw
 
         # L2 diff between two sets of non-normalized bottleneck neurons
         # L2 diff = sqrt(sum(square(X - Y)))
@@ -256,7 +263,11 @@ class MimicPenaltyDSSIM:
         # these are the variables to initialize when we run
         self.setup = []
         self.setup.append(self.modifier.assign(self.assign_modifier))
-        self.setup.append(self.timg_tanh.assign(self.assign_timg_tanh))
+        if self.MIMIC_IMG:
+            self.setup.append(self.timg_tanh.assign(self.assign_timg_tanh))
+        else:
+            self.setup.append(self.bottleneck_t_raw.assign(
+                self.assign_bottleneck_t_raw))
         self.setup.append(self.simg_tanh.assign(self.assign_simg_tanh))
         self.setup.append(self.const.assign(self.assign_const))
         self.setup.append(self.mask.assign(self.assign_mask))
@@ -287,9 +298,9 @@ class MimicPenaltyDSSIM:
 
         return imgs
 
-    def print_stat(self, origin_imgs, o_bestattack):
+    def print_stat(self, source_imgs, best_adv):
 
-        avg_rmsd, std_rmsd = cal_rmsd(origin_imgs, o_bestattack)
+        avg_rmsd, std_rmsd = cal_rmsd(source_imgs, best_adv)
         print('Avg RMSD: %.4f, STD RMSD: %.4f' % (avg_rmsd, std_rmsd))
 
         return
@@ -309,9 +320,15 @@ class MimicPenaltyDSSIM:
 
         assert weights.shape[1:] == self.bottleneck_shape[1:]
         assert source_imgs.shape[1:] == self.input_shape[1:]
-        assert target_imgs.shape[1:] == self.input_shape[1:]
         assert source_imgs.shape[0] == weights.shape[0]
-        assert source_imgs.shape[0] == target_imgs.shape[0]
+        if self.MIMIC_IMG:
+            assert target_imgs.shape[1:] == self.input_shape[1:]
+            assert source_imgs.shape[0] == target_imgs.shape[0]
+        else:
+            # target_imgs should be bottleneck values
+            # we do not rename the variable here
+            assert target_imgs.shape[1:] == self.bottleneck_shape[1:]
+            assert source_imgs.shape[0] == target_imgs.shape[0]
 
         start_time = time.time()
 
@@ -351,13 +368,19 @@ class MimicPenaltyDSSIM:
 
         # convert to tanh-space
         simg_tanh = self.preprocess_arctanh(source_imgs)
-        timg_tanh = self.preprocess_arctanh(target_imgs)
+        if self.MIMIC_IMG:
+            timg_tanh = self.preprocess_arctanh(target_imgs)
+        else:
+            timg_tanh = target_imgs
 
         CONST = np.ones(self.batch_size) * self.initial_const
 
         self.sess.run(self.init)
         simg_tanh_batch = np.zeros(self.input_shape)
-        timg_tanh_batch = np.zeros(self.input_shape)
+        if self.MIMIC_IMG:
+            timg_tanh_batch = np.zeros(self.input_shape)
+        else:
+            timg_tanh_batch = np.zeros(self.bottleneck_shape)
         weights_batch = np.zeros(self.bottleneck_shape)
         simg_tanh_batch[:nb_imgs] = simg_tanh[:nb_imgs]
         timg_tanh_batch[:nb_imgs] = timg_tanh[:nb_imgs]
@@ -365,13 +388,24 @@ class MimicPenaltyDSSIM:
         modifier_batch = np.ones(self.input_shape) * 1e-6
 
         # set the variables so that we don't have to send them over again
-        self.sess.run(self.setup,
-                      {self.assign_timg_tanh: timg_tanh_batch,
-                       self.assign_simg_tanh: simg_tanh_batch,
-                       self.assign_const: CONST,
-                       self.assign_mask: mask,
-                       self.assign_weights: weights_batch,
-                       self.assign_modifier: modifier_batch})
+        if self.MIMIC_IMG:
+            self.sess.run(self.setup,
+                          {self.assign_timg_tanh: timg_tanh_batch,
+                           self.assign_simg_tanh: simg_tanh_batch,
+                           self.assign_const: CONST,
+                           self.assign_mask: mask,
+                           self.assign_weights: weights_batch,
+                           self.assign_modifier: modifier_batch})
+        else:
+            # if directly mimicking a vector, use assign_bottleneck_t_raw
+            # in setup
+            self.sess.run(self.setup,
+                          {self.assign_bottleneck_t_raw: timg_tanh_batch,
+                           self.assign_simg_tanh: simg_tanh_batch,
+                           self.assign_const: CONST,
+                           self.assign_mask: mask,
+                           self.assign_weights: weights_batch,
+                           self.assign_modifier: modifier_batch})
 
         # if self.verbose == 1:
         #     print('************************************************')

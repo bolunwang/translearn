@@ -14,7 +14,7 @@ from keras.models import Model
 from keras.models import load_model
 
 import utils_translearn
-from attacks_penalty_dssim import MimicPenaltyDSSIM
+from mimic_penalty_dssim import MimicPenaltyDSSIM
 
 # for reproducing results
 import random
