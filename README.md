@@ -81,14 +81,14 @@ Below is the list of datasets we used in the paper.
 
 ### PRE-TRAINED MODELS
 
-Below is a list of links to pre-trained models we used in the paper. All models are hosted on 
+Below is a list of links to pre-trained models we used in the paper. All models are hosted on Dropbox.
 
-- **Face Recognition**: [link]() to model. This model uses imagenet mean-centering as preprocessing.
+- **Face Recognition**: [link](https://www.dropbox.com/s/xcj8rfpy72ukalz/pubfig65_vggface_trans_nbtrain_90.h5?dl=0) to model. This model uses imagenet mean-centering as preprocessing.
 - **Iris Recognition**: [link]() to model. This model uses imagenet mean-centering as preprocessing.
 - **Traffic Sign Recognition**: [link]() to model. This model uses imagenet mean-centering as preprocessing.
 - **Flower Recognition**: [link]() to model. This model uses inception preprocessing, which rescales the input to `[-1, 1]`.
 
-
+We also converted the pre-trained `VGGFace` model from Caffe to Keras. The architecture is defined in [`utils_translearn.py`](utils_translearn.py#L15-L83), and the pre-trained model weights can be downloaded [here](https://www.dropbox.com/s/94m2w1ofvd9raua/vggface.h5?dl=0).
 
 
 
