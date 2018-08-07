@@ -18,7 +18,7 @@ from mimic_penalty_dssim import MimicPenaltyDSSIM
 
 # for reproducing results
 import random
-random.seed(12345)
+random.seed(1234)
 import itertools
 
 
@@ -45,15 +45,15 @@ RESULT_DIR = './pubfig65'
 
 DEVICE = '0'  # which GPU to use
 
-BATCH_SIZE = 1
-NB_PAIR = 2
+BATCH_SIZE = 1  # number of images being processed simultaneously, default is 1
+NB_PAIR = 2  # number of pairs of source, target image
 
-DSSIM_THRESHOLD = 0.003
-CUTOFF_LAYER = 38
+DSSIM_THRESHOLD = 0.001  # DSSIM budget of perturbation
+CUTOFF_LAYER = 38  # Layer ID of the bottleneck layer (actual ID - 1)
 
-INITIAL_CONST = 1e10
-LR = 1
-MAX_ITER = 2000
+INITIAL_CONST = 1e10  # Penalty coefficient. Controls how tight the bound is
+LR = 1  # Learning rate of the optimizer
+MAX_ITER = 2000  # maximul number of iteration
 
 ##############################
 #      END PARAMETERS        #

@@ -40,7 +40,7 @@ class MimicPenaltyDSSIM:
     # filter sigma in SSIM
     FILTER_SIGMA = 1.5
     # weights used in MS-SSIM
-    WEIGHTS = None
+    SCALE_WEIGHTS = None
 
     def __init__(self, sess, bottleneck_model, mimic_img=MIMIC_IMG,
                  batch_size=1, learning_rate=LEARNING_RATE,
@@ -48,14 +48,16 @@ class MimicPenaltyDSSIM:
                  intensity_range=INTENSITY_RANGE, l_threshold=L_THRESHOLD,
                  max_val=MAX_VAL, keep_final=KEEP_FINAL,
                  filter_size=FILTER_SIZE, filter_sigma=FILTER_SIGMA,
-                 weights=WEIGHTS,
+                 scale_weights=SCALE_WEIGHTS,
                  verbose=0):
         """
         The L_2 optimized attack.
         Returns adversarial examples for the supplied bottleneck model.
-        sess: a TensorFlow session
-        bottleneck_model: the teacher model cut off at the layer attacker
+        sess: A TensorFlow session
+        bottleneck_model: The teacher model cut off at the layer attacker
             tries to launch the mimicry attack
+        mimic_img: Whether the attack is trying to mimic a target image
+            or a bottleneck neuron vector directly.
         batch_size: Number of attacks to run simultaneously.
         learning_rate: The learning rate for the attack algorithm.
             Smaller values produce better results but are slower to converge.
@@ -63,12 +65,17 @@ class MimicPenaltyDSSIM:
             Larger values are more accurate; setting too small will require
             a large learning rate and will produce poor results.
         initial_const: The initial tradeoff-constant to use to tune the
-            relative importance of distance and confidence.
+            relative importance of DSSIM and bottleneck similarity.
         intensity_range: The preprocessing method used by the model.
             'raw': no preprocessing
             'imagenet': default imagenet mean centering
             'inception': inception preprocessing, scaling to [-1, 1]
             'mnist': scaling to [0, 1]
+        l_threshold: The DSSIM budget used for crafting adversarial samples.
+        max_val: Maximum pixel intensity. Default set to 255.
+        keep_final: Whether to keep the final optimization result or keep the
+            best result throughout the process.
+        verbose: Whether to output the intermediate log or not.
         """
 
         assert intensity_range in {'raw', 'imagenet', 'inception', 'mnist'}
@@ -186,7 +193,7 @@ class MimicPenaltyDSSIM:
                     tf.expand_dims(aimg_raw_split[idx], 0),
                     tf.expand_dims(simg_raw_split[idx], 0),
                     max_val=max_val, filter_size=filter_size,
-                    filter_sigma=filter_sigma, weights=weights)
+                    filter_sigma=filter_sigma, weights=scale_weights)
                 for idx in xrange(batch_size)]
 
             dssim = (1.0 - tf.stack(msssim_split)) / 2.0
@@ -307,13 +314,7 @@ class MimicPenaltyDSSIM:
 
     def attack(self, source_imgs, target_imgs, weights=None):
 
-        """
-        Perform the L2 attack on the given images for the given targets.
-        If self.targeted is true, then the targets represents the target
-            labels.
-        If self.targeted is false, then targets are the original class labels.
-        """
-
+        # weights defines
         if weights is None:
             weights = np.ones([source_imgs.shape[0]] +
                               list(self.bottleneck_shape[1:]))

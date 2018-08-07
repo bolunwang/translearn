@@ -41,17 +41,18 @@ STUDENT_MODEL_FILE = 'pubfig65-vggface-trans-nb-train-90.h5'
 
 # parameters used for attack
 
-DEVICE = '0'  # which GPU to use
+DEVICE = '1'  # which GPU to use
 
-BATCH_SIZE = 1
-NB_IMGS = 1
+BATCH_SIZE = 1  # number of images being processed simultaneously, default is 1
+NB_IMGS = 1  # number of fingerprinting images generated
 
+# set to 1 here, as we do not care about how the image looks like
 DSSIM_THRESHOLD = 1
-CUTOFF_LAYER = 38
+CUTOFF_LAYER = 38  # ID of bottleneck layer
 
-INITIAL_CONST = 1e10
-LR = 1
-MAX_ITER = 2000
+INITIAL_CONST = 1e10  # Penalty coefficient. Controls how tight the bound is
+LR = 1  # Learning rate of the optimizer
+MAX_ITER = 2000  # maximul number of iteration
 
 ##############################
 #      END PARAMETERS        #
@@ -126,6 +127,9 @@ def pubfig65_fingerprint_vggface():
         gini_list.append(utils_translearn.gini(Y_pred[idx]))
         max_conf_list.append(Y_conf[idx])
 
+    # Low gini index means fingerprinting is successful, the correct teacher
+    # is found. You can also infer this from maximum confidence. If max_conf
+    # is low (similar to 1 / NB_CLASSES), then fingerprinting is successful.
     avg_gini = np.mean(gini_list)
     avg_max_conf = np.mean(max_conf_list)
     print('INFO: avg_gini: %f, avg_max_conf: %f' % (avg_gini, avg_max_conf))
