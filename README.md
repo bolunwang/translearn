@@ -55,7 +55,7 @@ Similar as the previous attack example, there are several parameters you need to
 
 #### Patch
 
-This [script](pubfig65_patch_neuron_distance.py) contains an example of how to patch DNN using the updated loss function. To run this script, simply run 
+This [script](pubfig65_patch_neuron_distance.py) contains an example of how to patch DNN using the updated loss function. To run this script, simply run
 
 ```
 python pubfig65_patch_neuron_distance.py
@@ -63,7 +63,7 @@ python pubfig65_patch_neuron_distance.py
 
 Similar as the previous example, there is some setup before running this example, as described below.
 
-1. Path to model files are specified by [`TEACHER_MODEL_FILE`](pubfig65_patch_neuron_distance.py#L35) and [`STUDENT_MODEL_FILE`](pubfig65_patch_neuron_distance.py#L36). 
+1. Path to model files are specified by [`TEACHER_MODEL_FILE`](pubfig65_patch_neuron_distance.py#L35) and [`STUDENT_MODEL_FILE`](pubfig65_patch_neuron_distance.py#L36).
 2. [`DATA_FILE`](pubfig65_patch_neuron_distance.py#L37) specifies the patch to the training/testing dataset. We use the `h5` format to store the dataset, but you can change it to any format you prefer. Dataset is loaded by the [`load_dataset()`](pubfig65_patch_neuron_distance.py#L187-L211) function. Be sure to modify the function if you change the dataset format.
 3. Similar as before, you need to specify the GPU used for training. This is specified by `DEVICE`.
 4. Parameters used by the patching is specified [here](pubfig65_patch_neuron_distance.py#L49-L55). We incrementally increase the neuron distance threshold to stablize the training process. More details are included in the documentation of the script.
@@ -85,7 +85,7 @@ Below is a list of links to pre-trained models we used in the paper. All models 
 
 - **Face Recognition**: [link](https://www.dropbox.com/s/xcj8rfpy72ukalz/pubfig65_vggface_trans_nbtrain_90.h5?dl=0) to model. This model uses imagenet mean-centering as preprocessing.
 - **Iris Recognition**: [link](https://www.dropbox.com/s/pqeq135rdj9hk3x/iris_vgg16_trans.h5?dl=0) to model. This model uses imagenet mean-centering as preprocessing.
-- **Traffic Sign Recognition**: [link](https://www.dropbox.com/s/k6u7vygwt9wrcs0/gtsrb_vgg16_trans.h5?dl=0) to model. This model uses imagenet mean-centering as preprocessing.
+- **Traffic Sign Recognition**: [link]() is temporarily unavailable. This model uses imagenet mean-centering as preprocessing.
 - **Flower Recognition**: [link](https://www.dropbox.com/s/fvqlaqljfmkeghi/flower_resnet50_trans.h5?dl=0) to model. This model uses inception preprocessing, which rescales the input to `[-1, 1]`.
 
 We also converted the pre-trained `VGGFace` model from Caffe to Keras. The architecture is defined in [`utils_translearn.py`](utils_translearn.py#L15-L83), and the pre-trained model weights can be downloaded [here](https://www.dropbox.com/s/94m2w1ofvd9raua/vggface.h5?dl=0).
