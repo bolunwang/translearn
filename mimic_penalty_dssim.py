@@ -181,6 +181,12 @@ class MimicPenaltyDSSIM:
             if self.MIMIC_IMG:
                 self.timg_input = self.timg_raw / 255.0
 
+        elif self.intensity_range == 'raw':
+            self.aimg_input = self.aimg_raw
+            self.simg_input = self.simg_raw
+            if self.MIMIC_IMG:
+                self.timg_input = self.timg_raw
+
         '''
         CONSTRAINTS: perturbation
         DSSIM: structural dis-similarity between two images.
